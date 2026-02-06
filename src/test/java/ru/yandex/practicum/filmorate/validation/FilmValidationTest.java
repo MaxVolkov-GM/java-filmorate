@@ -7,6 +7,8 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.controller.FilmController;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
@@ -68,6 +70,16 @@ class FilmValidationTest {
         Set<ConstraintViolation<Film>> violations = validator.validate(film);
 
         assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenReleaseDateBeforeCinemaBirthday() {
+        FilmController controller = new FilmController();
+
+        Film film = validFilm();
+        film.setReleaseDate(LocalDate.of(1890, 3, 25));
+
+        assertThrows(ValidationException.class, () -> controller.createFilm(film));
     }
 
     private Film validFilm() {

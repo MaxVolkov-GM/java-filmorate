@@ -7,6 +7,8 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.controller.UserController;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -68,6 +70,16 @@ class UserValidationTest {
         Set<ConstraintViolation<User>> violations = validator.validate(user);
 
         assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenLoginContainsSpaces() {
+        UserController controller = new UserController();
+
+        User user = validUser();
+        user.setLogin("lo gin");
+
+        assertThrows(ValidationException.class, () -> controller.createUser(user));
     }
 
     private User validUser() {

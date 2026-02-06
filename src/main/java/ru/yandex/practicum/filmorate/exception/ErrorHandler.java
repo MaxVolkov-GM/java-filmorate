@@ -15,29 +15,23 @@ public class ErrorHandler {
 
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleNotFoundException(NotFoundException e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", e.getMessage());
-        return response;
+    public ErrorResponse handleNotFoundException(NotFoundException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationException(ValidationException e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", e.getMessage());
-        return response;
+    public ErrorResponse handleValidationException(ValidationException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
-
         for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
-
         return errors;
     }
 }
