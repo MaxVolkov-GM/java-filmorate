@@ -1,7 +1,8 @@
 package ru.yandex.practicum.filmorate.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -10,13 +11,27 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserStorage userStorage;
 
-    @Autowired
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
+    public User createUser(User user) {
+        validateUser(user);
+        return userStorage.create(user);
+    }
+
+    public User updateUser(User user) {
+        validateUser(user);
+        return userStorage.update(user);
+    }
+
+    public List<User> getUsers() {
+        return userStorage.findAll().stream().toList();
+    }
+
+    public User getUserById(int id) {
+        return userStorage.findById(id);
     }
 
     public void addFriend(int userId, int friendId) {
@@ -54,5 +69,11 @@ public class UserService {
                 .filter(otherFriends::contains)
                 .map(userStorage::findById)
                 .collect(Collectors.toList());
+    }
+
+    private void validateUser(User user) {
+        if (user.getLogin() != null && user.getLogin().contains(" ")) {
+            throw new ValidationException("Логин не должен содержать пробелы");
+        }
     }
 }
