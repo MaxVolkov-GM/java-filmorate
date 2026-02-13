@@ -1,33 +1,39 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
+    @Qualifier("userDbStorage")
     private final UserStorage userStorage;
 
     public User createUser(User user) {
         validateUser(user);
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
         return userStorage.create(user);
     }
 
     public User updateUser(User user) {
         validateUser(user);
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
         return userStorage.update(user);
     }
 
-    public List<User> getUsers() {
-        return userStorage.findAll().stream().toList();
+    public Collection<User> getUsers() {
+        return userStorage.findAll();
     }
 
     public User getUserById(int id) {
@@ -35,45 +41,43 @@ public class UserService {
     }
 
     public void addFriend(int userId, int friendId) {
-        User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
-
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        userStorage.findById(userId);
+        userStorage.findById(friendId);
+        userStorage.addFriend(userId, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
-        User user = userStorage.findById(userId);
-        User friend = userStorage.findById(friendId);
-
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
+        userStorage.findById(userId);
+        userStorage.findById(friendId);
+        userStorage.removeFriend(userId, friendId);
     }
 
     public List<User> getFriends(int userId) {
-        User user = userStorage.findById(userId);
-
-        return user.getFriends().stream()
-                .map(userStorage::findById)
-                .collect(Collectors.toList());
+        userStorage.findById(userId);
+        return userStorage.findFriends(userId);
     }
 
     public List<User> getCommonFriends(int userId, int otherId) {
-        User user = userStorage.findById(userId);
-        User other = userStorage.findById(otherId);
-
-        Set<Integer> userFriends = user.getFriends();
-        Set<Integer> otherFriends = other.getFriends();
-
-        return userFriends.stream()
-                .filter(otherFriends::contains)
-                .map(userStorage::findById)
-                .collect(Collectors.toList());
+        userStorage.findById(userId);
+        userStorage.findById(otherId);
+        return userStorage.findCommonFriends(userId, otherId);
     }
 
     private void validateUser(User user) {
-        if (user.getLogin() != null && user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не должен содержать пробелы");
+        if (user == null) {
+            throw new IllegalArgumentException("Пользователь не может быть null");
+        }
+        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+            throw new IllegalArgumentException("Некорректный email");
+        }
+        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+            throw new IllegalArgumentException("Некорректный login");
+        }
+        if (user.getBirthday() == null) {
+            throw new IllegalArgumentException("Некорректная дата рождения");
+        }
+        if (user.getBirthday().isAfter(java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("Дата рождения не может быть в будущем");
         }
     }
 }

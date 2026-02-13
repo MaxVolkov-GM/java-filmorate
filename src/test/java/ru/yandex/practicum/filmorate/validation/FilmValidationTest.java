@@ -1,97 +1,86 @@
 package ru.yandex.practicum.filmorate.validation;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.FilmController;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
-class FilmValidationTest {
+public class FilmValidationTest {
 
-    private ValidatorFactory factory;
-    private Validator validator;
+    private FilmService filmService;
 
     @BeforeEach
     void setUp() {
-        factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
-    }
-
-    @AfterEach
-    void tearDown() {
-        factory.close();
+        FilmStorage filmStorage = mock(FilmStorage.class);
+        UserStorage userStorage = mock(UserStorage.class);
+        filmService = new FilmService(filmStorage, userStorage);
     }
 
     @Test
-    void shouldFailWhenNameIsBlank() {
-        Film film = validFilm();
-        film.setName("   ");
+    void shouldThrowWhenNameIsBlank() {
+        Film film = new Film();
+        film.setName(" ");
+        film.setDescription("desc");
+        film.setReleaseDate(LocalDate.of(2000, 1, 1));
+        film.setDuration(100);
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-
-        assertFalse(violations.isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> filmService.createFilm(film));
     }
 
     @Test
-    void shouldFailWhenDescriptionMoreThan200() {
-        Film film = validFilm();
+    void shouldThrowWhenDescriptionTooLong() {
+        Film film = new Film();
+        film.setName("Name");
         film.setDescription("a".repeat(201));
+        film.setReleaseDate(LocalDate.of(2000, 1, 1));
+        film.setDuration(100);
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-
-        assertFalse(violations.isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> filmService.createFilm(film));
     }
 
     @Test
-    void shouldFailWhenDurationNotPositive() {
-        Film film = validFilm();
+    void shouldThrowWhenReleaseDateBeforeCinemaBirthday() {
+        Film film = new Film();
+        film.setName("Name");
+        film.setDescription("desc");
+        film.setReleaseDate(LocalDate.of(1800, 1, 1));
+        film.setDuration(100);
+
+        assertThrows(IllegalArgumentException.class, () -> filmService.createFilm(film));
+    }
+
+    @Test
+    void shouldThrowWhenDurationIsNotPositive() {
+        Film film = new Film();
+        film.setName("Name");
+        film.setDescription("desc");
+        film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(0);
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-
-        assertFalse(violations.isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> filmService.createFilm(film));
     }
 
     @Test
-    void shouldPassOnBoundaryDescription200() {
-        Film film = validFilm();
-        film.setDescription("a".repeat(200));
-
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-
-        assertTrue(violations.isEmpty());
+    void shouldThrowWhenFilmIsNull() {
+        assertThrows(IllegalArgumentException.class, () -> filmService.createFilm(null));
     }
 
     @Test
-    void shouldFailWhenReleaseDateBeforeCinemaBirthday() {
-        FilmService filmService = new FilmService(new InMemoryFilmStorage(), new InMemoryUserStorage());
-        FilmController controller = new FilmController(filmService);
-
-        Film film = validFilm();
-        film.setReleaseDate(LocalDate.of(1890, 3, 25));
-
-        assertThrows(ValidationException.class, () -> controller.createFilm(film));
-    }
-
-    private Film validFilm() {
+    void shouldNotThrowWhenFilmIsValid() {
         Film film = new Film();
-        film.setName("Matrix");
-        film.setDescription("Good film");
-        film.setReleaseDate(LocalDate.of(1999, 3, 31));
-        film.setDuration(120);
-        return film;
+        film.setName("Name");
+        film.setDescription("desc");
+        film.setReleaseDate(LocalDate.of(2000, 1, 1));
+        film.setDuration(100);
+
+        assertDoesNotThrow(() -> filmService.createFilm(film));
     }
 }
