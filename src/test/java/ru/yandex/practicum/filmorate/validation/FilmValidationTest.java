@@ -3,7 +3,10 @@ package ru.yandex.practicum.filmorate.validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.service.GenreService;
+import ru.yandex.practicum.filmorate.service.MpaService;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -12,16 +15,21 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class FilmValidationTest {
 
     private FilmService filmService;
+    private MpaService mpaService;
 
     @BeforeEach
     void setUp() {
         FilmStorage filmStorage = mock(FilmStorage.class);
         UserStorage userStorage = mock(UserStorage.class);
-        filmService = new FilmService(filmStorage, userStorage);
+        GenreService genreService = mock(GenreService.class);
+        mpaService = mock(MpaService.class);
+
+        filmService = new FilmService(filmStorage, userStorage, genreService, mpaService);
     }
 
     @Test
@@ -80,6 +88,15 @@ public class FilmValidationTest {
         film.setDescription("desc");
         film.setReleaseDate(LocalDate.of(2000, 1, 1));
         film.setDuration(100);
+
+        Mpa mpa = new Mpa();
+        mpa.setId(1);
+        film.setMpa(mpa);
+
+        Mpa fromDb = new Mpa();
+        fromDb.setId(1);
+        fromDb.setName("G");
+        when(mpaService.findById(1)).thenReturn(fromDb);
 
         assertDoesNotThrow(() -> filmService.createFilm(film));
     }
