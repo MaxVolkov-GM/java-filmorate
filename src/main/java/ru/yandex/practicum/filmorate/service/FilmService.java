@@ -4,12 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -19,15 +23,19 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
+    private final GenreService genreService;
+    private final MpaService mpaService;
 
     public Film createFilm(Film film) {
         validateFilm(film);
+        enrichMpaAndGenres(film);
         return filmStorage.create(film);
     }
 
     public Film updateFilm(Film film) {
         validateFilm(film);
         filmStorage.findById(film.getId());
+        enrichMpaAndGenres(film);
         return filmStorage.update(film);
     }
 
@@ -74,11 +82,29 @@ public class FilmService {
         if (film.getDuration() <= 0) {
             throw new IllegalArgumentException("Продолжительность фильма должна быть положительной");
         }
-        if (film.getMpa() != null && film.getMpa().getId() <= 0) {
+        if (film.getMpa() == null) {
+            throw new IllegalArgumentException("Рейтинг MPA обязателен");
+        }
+        if (film.getMpa().getId() <= 0) {
             throw new NotFoundException("Некорректный рейтинг MPA");
         }
         if (film.getGenres() != null && film.getGenres().stream().anyMatch(g -> g.getId() <= 0)) {
             throw new NotFoundException("Некорректный жанр");
         }
+    }
+
+    private void enrichMpaAndGenres(Film film) {
+        Mpa mpa = mpaService.findById(film.getMpa().getId());
+        film.setMpa(mpa);
+
+        if (film.getGenres() == null || film.getGenres().isEmpty()) {
+            return;
+        }
+
+        Set<Genre> genres = new LinkedHashSet<>();
+        for (Genre g : film.getGenres()) {
+            genres.add(genreService.findById(g.getId()));
+        }
+        film.setGenres(genres);
     }
 }
