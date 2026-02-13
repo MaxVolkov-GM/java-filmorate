@@ -6,14 +6,16 @@ import jakarta.validation.constraints.PastOrPresent;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 public class User {
 
-    private Integer id;
+    private int id;
 
     @NotBlank(message = "Email не может быть пустым")
-    @Email(message = "Email должен быть корректным")
+    @Email(message = "Некорректный email")
     private String email;
 
     @NotBlank(message = "Логин не может быть пустым")
@@ -23,4 +25,6 @@ public class User {
 
     @PastOrPresent(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
+
+    private Set<Integer> friends = new HashSet<>();
 }

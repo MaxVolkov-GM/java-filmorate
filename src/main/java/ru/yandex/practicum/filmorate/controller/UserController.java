@@ -1,71 +1,58 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    private final Map<Integer, User> users = new HashMap<>();
-    private int nextId = 1;
+    private final UserService userService;
 
     @PostMapping
     public User createUser(@Valid @RequestBody User user) {
-        validateLoginNoSpaces(user.getLogin());
-
-        user.setId(nextId++);
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-
-        users.put(user.getId(), user);
-        log.info("Создан пользователь: {}", user);
-        return user;
+        return userService.createUser(user);
     }
 
     @PutMapping
     public User updateUser(@Valid @RequestBody User user) {
-        if (user.getId() == null) {
-            log.warn("Ошибка обновления пользователя: id = null");
-            throw new ValidationException("Id пользователя должен быть указан");
-        }
-
-        if (!users.containsKey(user.getId())) {
-            log.warn("Попытка обновить несуществующего пользователя с id={}", user.getId());
-            throw new NotFoundException("Пользователь с таким id не найден");
-        }
-
-        validateLoginNoSpaces(user.getLogin());
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-
-        users.put(user.getId(), user);
-        log.info("Обновлён пользователь: {}", user);
-        return user;
+        return userService.updateUser(user);
     }
 
     @GetMapping
-    public Collection<User> getAllUsers() {
-        return users.values();
+    public Collection<User> getUsers() {
+        return userService.getUsers();
     }
 
-    private void validateLoginNoSpaces(String login) {
-        if (login != null && login.contains(" ")) {
-            log.warn("Ошибка валидации пользователя: login содержит пробелы: '{}'", login);
-            throw new ValidationException("Логин не должен содержать пробелы");
-        }
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable int id) {
+        return userService.getUserById(id);
+    }
+
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable int id, @PathVariable int friendId) {
+        userService.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable int id, @PathVariable int friendId) {
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable int id) {
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(@PathVariable int id, @PathVariable int otherId) {
+        return userService.getCommonFriends(id, otherId);
     }
 }
