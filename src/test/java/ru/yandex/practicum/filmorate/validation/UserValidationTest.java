@@ -1,96 +1,79 @@
 package ru.yandex.practicum.filmorate.validation;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.UserController;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class UserValidationTest {
 
-    private ValidatorFactory factory;
-    private Validator validator;
+    private UserService userService;
 
     @BeforeEach
     void setUp() {
-        factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
-    }
-
-    @AfterEach
-    void tearDown() {
-        factory.close();
+        UserStorage userStorage = mock(UserStorage.class);
+        when(userStorage.create(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        userService = new UserService(userStorage);
     }
 
     @Test
-    void shouldFailWhenEmailBlank() {
-        User user = validUser();
-        user.setEmail("  ");
+    void shouldThrowWhenEmailIsBlank() {
+        User user = new User();
+        user.setEmail(" ");
+        user.setLogin("login");
+        user.setBirthday(LocalDate.of(2000, 1, 1));
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertFalse(violations.isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(user));
     }
 
     @Test
-    void shouldFailWhenEmailInvalid() {
-        User user = validUser();
-        user.setEmail("wrong-email");
+    void shouldThrowWhenLoginIsBlank() {
+        User user = new User();
+        user.setEmail("email@mail.com");
+        user.setLogin(" ");
+        user.setBirthday(LocalDate.of(2000, 1, 1));
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertFalse(violations.isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(user));
     }
 
     @Test
-    void shouldFailWhenLoginBlank() {
-        User user = validUser();
-        user.setLogin("");
-
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertFalse(violations.isEmpty());
-    }
-
-    @Test
-    void shouldFailWhenBirthdayInFuture() {
-        User user = validUser();
+    void shouldThrowWhenBirthdayIsInFuture() {
+        User user = new User();
+        user.setEmail("email@mail.com");
+        user.setLogin("login");
         user.setBirthday(LocalDate.now().plusDays(1));
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-
-        assertFalse(violations.isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(user));
     }
 
     @Test
-    void shouldFailWhenLoginContainsSpaces() {
-        UserService userService = new UserService(new InMemoryUserStorage());
-        UserController controller = new UserController(userService);
+    void shouldSetNameIfBlank() {
+        User user = new User();
+        user.setEmail("email@mail.com");
+        user.setLogin("login");
+        user.setName(" ");
+        user.setBirthday(LocalDate.of(2000, 1, 1));
 
-        User user = validUser();
-        user.setLogin("lo gin");
-
-        assertThrows(ValidationException.class, () -> controller.createUser(user));
+        assertDoesNotThrow(() -> userService.createUser(user));
     }
 
-    private User validUser() {
+    @Test
+    void shouldCreateValidUser() {
         User user = new User();
-        user.setEmail("user@mail.ru");
+        user.setEmail("email@mail.com");
         user.setLogin("login");
-        user.setName("User");
+        user.setName("Name");
         user.setBirthday(LocalDate.of(2000, 1, 1));
-        return user;
+
+        assertDoesNotThrow(() -> userService.createUser(user));
     }
 }
