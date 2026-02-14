@@ -1,11 +1,11 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -13,22 +13,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserService {
 
-    @Qualifier("userDbStorage")
     private final UserStorage userStorage;
 
     public User createUser(User user) {
         validateUser(user);
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
+        normalizeUserName(user);
         return userStorage.create(user);
     }
 
     public User updateUser(User user) {
         validateUser(user);
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
+        normalizeUserName(user);
         return userStorage.update(user);
     }
 
@@ -63,20 +58,26 @@ public class UserService {
         return userStorage.findCommonFriends(userId, otherId);
     }
 
+    private void normalizeUserName(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
+    }
+
     private void validateUser(User user) {
         if (user == null) {
             throw new IllegalArgumentException("Пользователь не может быть null");
         }
-        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new IllegalArgumentException("Некорректный email");
         }
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+        if (user.getLogin() == null || user.getLogin().isBlank()) {
             throw new IllegalArgumentException("Некорректный login");
         }
-        if (user.getBirthday() == null) {
-            throw new IllegalArgumentException("Некорректная дата рождения");
+        if (user.getLogin().contains(" ")) {
+            throw new IllegalArgumentException("Некорректный login");
         }
-        if (user.getBirthday().isAfter(java.time.LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Дата рождения не может быть в будущем");
         }
     }

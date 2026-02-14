@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @RestController
@@ -27,8 +27,8 @@ public class FilmController {
     }
 
     @GetMapping
-    public List<Film> getFilms() {
-        return new ArrayList<>(filmService.getFilms());
+    public Collection<Film> getFilms() {
+        return filmService.getFilms();
     }
 
     @GetMapping("/{id}")
@@ -48,6 +48,6 @@ public class FilmController {
 
     @GetMapping("/popular")
     public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
-        return new ArrayList<>(filmService.getPopularFilms(count));
+        return filmService.getPopularFilms(count);
     }
 }
